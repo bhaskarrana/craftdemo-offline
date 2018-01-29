@@ -1,0 +1,44 @@
+<coordinator-app name="graph-node-edge-coordinator" frequency="${coord:days(1)} start="$start" end="$end" timezone="UTC" xmlns="uri:oozie:coordinator:0.1">
+   <controls>
+    <timeout>1440</timeout>  <!-- timeout if job is not run after 24 hours -->
+    <concurrency>1</concurrency>
+    <execution>FIFO</execution>
+  </controls>
+   <datasets>
+      <dataset name="cust-user" frequency="${coord:days(1)}"  initial-instance="$intial" timezone="UTC">
+         <uri-template>hdfs://localhost:9000/$nameNode/$custPath/${YEAR}/${MONTH}/${DAY}/</uri-template>
+         <done-flag>trigger.dat</done-flag>
+      </dataset>
+      <dataset name="prod" frequency="${coord:days(1)}"  initial-instance="$intial" timezone="UTC">
+         <uri-template>hdfs://localhost:9000/$nameNode/$prodPath/${YEAR}/${MONTH}/${DAY}/</uri-template>
+         <done-flag>trigger.dat</done-flag>
+      </dataset>
+      <dataset name="user" frequency="${coord:days(1)}"  initial-instance="$intial" timezone="UTC">
+         <uri-template>hdfs://localhost:9000/$nameNode/$userPath/${YEAR}/${MONTH}/${DAY}/</uri-template>
+         <done-flag>trigger.dat</done-flag>
+      </dataset>
+      <dataset name="user-product" frequency="${coord:days(1)}"  initial-instance="$intial" timezone="UTC">
+         <uri-template>hdfs://localhost:9000/$nameNode/$userProductPath/${YEAR}/${MONTH}/${DAY}/</uri-template>
+         <done-flag>trigger.dat</done-flag>
+      </dataset>
+   </datasets>
+   <input-events>
+      <data-in name="coordInput1" dataset="cust-user">
+           <instance>${intial}</instance>
+      </data-in>
+	  <data-in name="coordInput1" dataset="prod">
+           <instance>${intial}</instance>
+      </data-in>
+	  <data-in name="coordInput1" dataset="user">
+           <instance>${intial}</instance>
+      </data-in>
+	  <data-in name="coordInput1" dataset="user-product">
+           <instance>${intial}</instance>
+      </data-in>
+   </input-events>
+   <action>
+      <workflow>
+	      <app-path>${workflowpath}</app-path>
+      </workflow>
+   </action>     
+</coordinator-app>
