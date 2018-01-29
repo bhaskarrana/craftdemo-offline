@@ -1,0 +1,160 @@
+<?xml version="1.0"?>
+<workflow-app xmlns="uri:oozie:workflow:0.4" name="create-node-edge-workflow">
+         <credentials>
+                <credential name="hcat" type="hcat">
+                        <property>
+                                <name>hcat.metastore.uri</name>
+                                <value>${hcat_metastore_uri}</value>
+                        </property>
+                        <property>
+                                <name>hcat.metastore.principal</name>
+                                <value>${hcat_metastore_principal}</value>
+                        </property>
+                </credential>
+        </credentials>
+
+        
+        <start to="graph-preparation-fork"/>
+
+        <fork name="graph-preparation-fork">
+                <path start="product-node-creation"/>
+                <path start="customer-node-creation"/>
+                <path start="user-node-creation"/>
+        </fork>
+
+        <action name="product-node-creation">
+                <sub-workflow>
+                        <app-path>${sub_wf_path}</app-path>
+                        <propagate-configuration/>
+                        <configuration>
+						 <property>
+                             <name>nodeName</name>
+                             <value>${nodeProductName}</value>
+                          </property>
+						  <property>
+                             <name>inputPath</name>
+                             <value>${inputProductPath}</value>
+                          </property>
+						  <property>
+                             <name>outputPath</name>
+                             <value>${outputProductPath}</value>
+                          </property>
+                        </configuration>
+                </sub-workflow>
+                <ok to="graph-node-join"/>
+                <error to="email"/>
+        </action>
+        <action name="customer-node-creation">
+                <sub-workflow>
+                        <app-path>${sub_wf_path}</app-path>
+                        <propagate-configuration/>
+                        <configuration>
+						 <property>
+                             <name>nodeName</name>
+                             <value>${nodeCustName}</value>
+                          </property>
+						  <property>
+                             <name>inputPath</name>
+                             <value>${inputCustPath}</value>
+                          </property>
+						  <property>
+                             <name>outputPath</name>
+                             <value>${outputCustPath}</value>
+                          </property>
+                        </configuration>
+                </sub-workflow>
+                <ok to="graph-node-join"/>
+                <error to="email"/>
+        </action>
+        <action name="user-node-creation">
+                <sub-workflow>
+                        <app-path>${sub_wf_path}</app-path>
+                        <propagate-configuration/>
+                        <configuration>
+			              <property>
+                             <name>nodeName</name>
+                             <value>${nodeUserName}</value>
+                          </property>
+			              <property>
+                             <name>inputPath</name>
+                             <value>${inputUserPath}</value>
+                          </property>
+			              <property>
+                             <name>outputPath</name>
+                             <value>${outputUserPath}</value>
+                          </property>
+						  
+                        </configuration>
+                </sub-workflow>
+                <ok to="graph-node-join"/>
+                <error to="email"/>
+        </action>
+        <join name="graph-node-join" to="graph-edge-fork"/>
+        <fork name="graph-edge-fork">
+                <path start="build-user-product-edge"/>
+                <path start="build-user-customer-edge"/>
+                
+        </fork>
+
+        <action name="build-user-product-edge">
+                <pig>
+                        <configuration>
+                          <property>
+                             <name>oozie.action.sharelib.for.pig</name>
+                             <value>pig,hcatalog</value>
+                          </property>
+                        </configuration>
+                        <script>CreateEdgeUserProd.pig</script>
+                        <param>edgeName=${edgeUpName}</param>
+                        <param>sourceNode=${upSourceNode}</param>
+                        <param>sinkNode=${upSinkNode}}</param>
+                        <param>inputPath=${inputUpPath}</param>
+                        <param>outputPath=${outputUpPath}</param>
+                        <file>${nameNode}/hive-site.xml#hive-site.xml</file>
+                        <file>/user/hive/warehouse/hive-oozie-site.xml#hive-oozie-site.xml</file>
+                </pig>
+                <ok to="graph-edge-join"/>
+                <error to="email"/>
+        </action>
+
+        <action name="build-user-customer-edge">
+                <pig>
+                       
+                        <configuration>
+                          <property>
+                             <name>oozie.action.sharelib.for.pig</name>
+                             <value>pig,hcatalog</value>
+                          </property>
+                        </configuration>
+                        <script>CreateEdgeUserCust.pig</script>
+                        <param>sourceNode=${ucSourceNode}</param>
+                        <param>sinkNode=${ucSinkNode}</param>
+                        <param>edgeName=${edgeUcName}</param>
+                        <param>inputPath=${inputUcPath}</param>
+                        <param>outputPath=${outputUcPath}</param>
+                        <file>${nameNode}/hive-site.xml#hive-site.xml</file>
+                        <file>/user/hive/warehouse/hive-oozie-site.xml#hive-oozie-site.xml</file>
+                </pig>
+                <ok to="graph-edge-join"/>
+                <error to="email"/>
+        </action>
+		
+       <join name="graph-edge-join" to="end"/>
+        <action name="email">
+                <email xmlns="uri:oozie:email-action:0.2">
+                        <to>${to}</to>
+                        <cc>${cc}</cc> <!-- cc is optional -->
+                        <subject>Email notifications for ${wf:id()}</subject>
+                        <body>failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</body>
+                </email>
+                <ok to="fail" />
+                <error to="fail" />
+        </action>
+
+        <kill name="fail">
+                <message>Action failed, error
+                        message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+        </kill>
+        <end name="end" />
+
+</workflow-app>
