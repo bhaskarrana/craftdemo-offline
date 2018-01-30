@@ -4,11 +4,6 @@ Biuild
 mvn clean package
 Workflow deployment
 
-hadoop fs -put   /user/xyz/craftdemo/lib
-
-
-hadoop fs -put    /user/xyz/craftdemo/subworkflow/
-
 
 
 Running Workflow
